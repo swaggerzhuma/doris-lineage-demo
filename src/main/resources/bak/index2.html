@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Management Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .tree {
+            margin-left: 20px;
+        }
+        .tree > li {
+            list-style-type: none;
+            margin-bottom: 10px;
+        }
+        .tree > li > span {
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .tree > li > ul {
+            display: none;
+            margin-left: 20px;
+        }
+        .tree > li > ul > li {
+            list-style-type: none;
+            margin-bottom: 5px;
+        }
+        .tree > li > ul > li > span {
+            font-weight: normal;
+            cursor: pointer;
+        }
+        .tree > li > ul > li > ul {
+            display: none;
+            margin-left: 20px;
+        }
+        .tree > li > ul > li > ul > li {
+            list-style-type: none;
+            margin-bottom: 5px;
+        }
+        .lineage-button {
+            margin-left: 10px;
+            cursor: pointer;
+            color: blue;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<h1>Database Management Tool</h1>
+<ul id="database-list" class="tree"></ul>
+
+<script>
+        const databaseList = document.getElementById('database-list');
+
+        async function fetchDatabases() {
+            const response = await fetch('/api/db/databases');
+            const databases = await response.json();
+            databases.forEach(db => {
+                const dbItem = document.createElement('li');
+                const dbSpan = document.createElement('span');
+                dbSpan.textContent = db;
+                dbSpan.onclick = () => fetchTables(db, dbItem);
+                dbItem.appendChild(dbSpan);
+                dbItem.appendChild(document.createElement('ul'));
+                databaseList.appendChild(dbItem);
+            });
+        }
+
+        async function fetchTables(database, dbItem) {
+            const tableList = dbItem.querySelector('ul');
+            if (!tableList.children.length) {
+                const response = await fetch(`/api/db/databases/${database}/tables`);
+                const tables = await response.json();
+                tables.forEach(table => {
+                    const tableItem = document.createElement('li');
+                    const tableSpan = document.createElement('span');
+                    tableSpan.textContent = table;
+                    tableSpan.onclick = () => fetchColumns(database, table, tableItem);
+                    tableItem.appendChild(tableSpan);
+
+                    // 添加 Lineage 按钮
+                    const lineageButton = document.createElement('span');
+                    lineageButton.textContent = 'Lineage';
+                    lineageButton.className = 'lineage-button';
+                    lineageButton.onclick = () => showTableLineage(table);
+                    tableItem.appendChild(lineageButton);
+
+                    tableItem.appendChild(document.createElement('ul'));
+                    tableList.appendChild(tableItem);
+                });
+            }
+            tableList.style.display = tableList.style.display === 'none' ? 'block' : 'none';
+        }
+
+        async function fetchColumns(database, table, tableItem) {
+            const columnList = tableItem.querySelector('ul');
+            if (!columnList.children.length) {
+                const response = await fetch(`/api/db/databases/${database}/tables/${table}/columns`);
+                const columns = await response.json();
+                columns.forEach(column => {
+                    const columnItem = document.createElement('li');
+                    columnItem.textContent = column;
+
+                    // 添加 Lineage 按钮
+                    const lineageButton = document.createElement('span');
+                    lineageButton.textContent = 'Lineage';
+                    lineageButton.className = 'lineage-button';
+                    lineageButton.onclick = () => showFieldLineage(column);
+                    columnItem.appendChild(lineageButton);
+
+                    columnList.appendChild(columnItem);
+                });
+            }
+            columnList.style.display = columnList.style.display === 'none' ? 'block' : 'none';
+        }
+
+        async function showTableLineage(tableName) {
+            const response = await fetch(`/api/db/lineage/table/${tableName}`);
+            const lineage = await response.json();
+            alert(`Table Lineage for ${tableName}:\n${lineage.join('\n')}`);
+        }
+
+        async function showFieldLineage(fieldName) {
+            const response = await fetch(`/api/db/lineage/field/${fieldName}`);
+            const lineage = await response.json();
+            alert(`Field Lineage for ${fieldName}:\n${lineage.join('\n')}`);
+        }
+
+        fetchDatabases();
+    </script>
+</body>
+</html>

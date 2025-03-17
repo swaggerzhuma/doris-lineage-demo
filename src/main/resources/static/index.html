@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Management Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .tree {
+            margin-left: 20px;
+        }
+        .tree > li {
+            list-style-type: none;
+            margin-bottom: 10px;
+        }
+        .tree > li > span {
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .tree > li > ul {
+            display: none;
+            margin-left: 20px;
+        }
+        .tree > li > ul > li {
+            list-style-type: none;
+            margin-bottom: 5px;
+        }
+        .tree > li > ul > li > span {
+            font-weight: normal;
+            cursor: pointer;
+        }
+        .tree > li > ul > li > ul {
+            display: none;
+            margin-left: 20px;
+        }
+        .tree > li > ul > li > ul > li {
+            list-style-type: none;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+<h1>Doris Lineage</h1>
+<ul id="database-list" class="tree"></ul>
+
+<script>
+        const databaseList = document.getElementById('database-list');
+
+        async function fetchDatabases() {
+            const response = await fetch('/api/db/databases');
+            const databases = await response.json();
+            databases.forEach(db => {
+                const dbItem = document.createElement('li');
+                const dbSpan = document.createElement('span');
+                dbSpan.textContent = db;
+                dbSpan.onclick = () => fetchTables(db, dbItem); // 修复：传递当前库的 DOM 元素
+                dbItem.appendChild(dbSpan);
+                dbItem.appendChild(document.createElement('ul')); // 创建子列表
+                databaseList.appendChild(dbItem);
+            });
+        }
+
+        async function fetchTables(database, dbItem) {
+            const tableList = dbItem.querySelector('ul');
+            if (!tableList.children.length) { // 如果还没有加载表数据
+                const response = await fetch(`/api/db/databases/${database}/tables`);
+                const tables = await response.json();
+                tables.forEach(table => {
+                    const tableItem = document.createElement('li');
+                    const tableSpan = document.createElement('span');
+                    tableSpan.textContent = table;
+                    tableSpan.onclick = () => fetchColumns(database, table, tableItem); // 修复：传递当前表的 DOM 元素
+                    tableItem.appendChild(tableSpan);
+                    tableItem.appendChild(document.createElement('ul')); // 创建字段列表
+                    tableList.appendChild(tableItem);
+                });
+            }
+            tableList.style.display = tableList.style.display === 'none' ? 'block' : 'none'; // 切换显示状态
+        }
+
+        async function fetchColumns(database, table, tableItem) {
+            const columnList = tableItem.querySelector('ul');
+            if (!columnList.children.length) { // 如果还没有加载字段数据
+                const response = await fetch(`/api/db/databases/${database}/tables/${table}/columns`);
+                const columns = await response.json();
+                columns.forEach(column => {
+                    const columnItem = document.createElement('li');
+                    columnItem.textContent = column;
+                    columnList.appendChild(columnItem);
+                });
+            }
+            columnList.style.display = columnList.style.display === 'none' ? 'block' : 'none'; // 切换显示状态
+        }
+
+        fetchDatabases();
+    </script>
+</body>
+</html>
