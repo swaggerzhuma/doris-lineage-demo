@@ -1,5 +1,7 @@
 package com.cnhis.dorislineage.demo.linstener;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.cnhis.dorislineage.demo.constants.NeoConstant;
 import com.cnhis.dorislineage.demo.dto.DorisSqlAudit;
 import com.cnhis.dorislineage.demo.dto.LineageContext;
@@ -43,14 +45,14 @@ public class CustomFeLogListener {
                 Objects.requireNonNull(messageHandler, "messageHandler required");
                 // 获取消息上下文
                 LineageContext lineageContext = messageHandler.handle(audit);
-                log.info("datasource:{}",JSONUtil.toJson(lineageContext.getDataSourceNodeList()));
-                log.info("relation：{}", JSONUtil.toJson(lineageContext.getRelationNodeList()));
-                log.info("db：{}", JSONUtil.toJson(lineageContext.getDbNodeList()));
-                log.info("table：{}", JSONUtil.toJson(lineageContext.getTableNodeList()));
-                log.info("field：{}", JSONUtil.toJson(lineageContext.getFieldNodeList()));
+                log.info("datasource:\n{}", JSON.toJSONString(lineageContext.getDataSourceNodeList(), SerializerFeature.PrettyFormat));
+                log.info("db：\n{}", JSON.toJSONString(lineageContext.getDbNodeList(), SerializerFeature.PrettyFormat));
+                log.info("table：\n{}", JSON.toJSONString(lineageContext.getTableNodeList(), SerializerFeature.PrettyFormat));
+                log.info("field：\n{}", JSON.toJSONString(lineageContext.getFieldNodeList(), SerializerFeature.PrettyFormat));
+                log.info("relation：\n{}", JSON.toJSONString(lineageContext.getRelationNodeList(), SerializerFeature.PrettyFormat));
                 Objects.requireNonNull(lineageContext, "lineageContext required");
                 // 消息存储
-//                mergeStorageHandler.handle(lineageContext);
+                mergeStorageHandler.handle(lineageContext);
             }
         } catch (Exception e) {
             log.error("kafkaListener错误：{},偏移量是：{}", e.getMessage(), record.offset());

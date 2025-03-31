@@ -1,3 +1,4 @@
+/*
 package com.cnhis.dorislineage.demo.configuration;
 
 import org.neo4j.driver.AuthTokens;
@@ -23,3 +24,4 @@ public class Neo4jConfig {
         return GraphDatabase.driver(neo4jUrl, AuthTokens.basic(neo4jUsername, neo4jPassword));
     }
 }
+*/

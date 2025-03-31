@@ -42,8 +42,10 @@ public class FieldNode extends BaseNodeEntity {
         this.setDbName(dbName);
         this.setTableName(tableName);
         this.setFieldName(fieldName);
+        Optional.ofNullable(this.getFieldName()).ifPresent(this::setName);
         String pk = NodeQualifiedName.ofField(this.getDataSourceName(), this.getDbName(), this.getTableName(), this.getFieldName()).toString();
         this.setPk(pk);
+        this.setNodeType(NeoConstant.Type.NODE_FIELD);
     }
 
 

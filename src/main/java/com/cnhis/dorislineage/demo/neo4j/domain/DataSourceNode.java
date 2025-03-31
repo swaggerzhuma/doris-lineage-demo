@@ -22,5 +22,7 @@ public class DataSourceNode extends BaseNodeEntity {
         // dataSource
         String pk = NodeQualifiedName.ofDataSource(this.getDataSourceName()).toString();
         this.setPk(pk);
+        this.setNodeType(NeoConstant.Type.NODE_DATASOURCE);
+        Optional.ofNullable(this.getDataSourceName()).ifPresent(this::setName);
     }
 }

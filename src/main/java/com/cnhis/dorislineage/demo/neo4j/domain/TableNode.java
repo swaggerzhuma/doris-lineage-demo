@@ -35,6 +35,7 @@ public class TableNode extends BaseNodeEntity {
         // dataSource/db/table
         String pk = NodeQualifiedName.ofTable(this.getDataSourceName(), this.getDbName(), this.getTableName()).toString();
         this.setPk(pk);
+        this.setNodeType(NeoConstant.Type.NODE_TABLE);
     }
 
     @Override

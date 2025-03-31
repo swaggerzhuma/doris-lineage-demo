@@ -31,6 +31,8 @@ public abstract class BaseNodeEntity extends BaseEntity {
     // 图的展示名称
     private String name;
 
+    private String nodeType;
+
     private String dataSourceName = DEFAULT_DATASOURCE;
 
     private String dbName;

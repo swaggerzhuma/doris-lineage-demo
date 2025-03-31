@@ -1,104 +1,243 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Database Management Tool</title>
+    <title>数据血缘关系展示</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css">
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
         h1 {
             text-align: center;
+            color: #333;
         }
-        .tree {
-            margin-left: 20px;
+        .navigation {
+            margin-bottom: 20px;
         }
-        .tree > li {
+        .database-list, .table-list, .field-list {
+            margin-bottom: 20px;
+        }
+        ul {
             list-style-type: none;
-            margin-bottom: 10px;
+            padding: 0;
         }
-        .tree > li > span {
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .tree > li > ul {
-            display: none;
-            margin-left: 20px;
-        }
-        .tree > li > ul > li {
-            list-style-type: none;
-            margin-bottom: 5px;
-        }
-        .tree > li > ul > li > span {
-            font-weight: normal;
+        li {
+            padding: 8px;
+            margin: 4px 0;
+            background-color: #f9f9f9;
+            border-radius: 4px;
             cursor: pointer;
         }
-        .tree > li > ul > li > ul {
-            display: none;
-            margin-left: 20px;
+        li:hover {
+            background-color: #eaeaea;
         }
-        .tree > li > ul > li > ul > li {
-            list-style-type: none;
-            margin-bottom: 5px;
+        .bloodline-container {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
     </style>
 </head>
 <body>
-<h1>Doris Lineage</h1>
-<ul id="database-list" class="tree"></ul>
+<div class="container">
+    <h1>数据血缘关系展示</h1>
 
+    <div class="navigation">
+        <div class="database-list">
+            <h2>数据库列表</h2>
+            <ul id="databaseList"></ul>
+        </div>
+    </div>
+
+    <div class="bloodline-container" id="bloodlineContainer"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
 <script>
-        const databaseList = document.getElementById('database-list');
+        document.addEventListener('DOMContentLoaded', function() {
+            const databaseListUl = document.getElementById('databaseList');
+            const bloodlineContainer = document.getElementById('bloodlineContainer');
 
-        async function fetchDatabases() {
-            const response = await fetch('/api/db/databases');
-            const databases = await response.json();
-            databases.forEach(db => {
-                const dbItem = document.createElement('li');
-                const dbSpan = document.createElement('span');
-                dbSpan.textContent = db;
-                dbSpan.onclick = () => fetchTables(db, dbItem); // 修复：传递当前库的 DOM 元素
-                dbItem.appendChild(dbSpan);
-                dbItem.appendChild(document.createElement('ul')); // 创建子列表
-                databaseList.appendChild(dbItem);
-            });
-        }
-
-        async function fetchTables(database, dbItem) {
-            const tableList = dbItem.querySelector('ul');
-            if (!tableList.children.length) { // 如果还没有加载表数据
-                const response = await fetch(`/api/db/databases/${database}/tables`);
-                const tables = await response.json();
-                tables.forEach(table => {
-                    const tableItem = document.createElement('li');
-                    const tableSpan = document.createElement('span');
-                    tableSpan.textContent = table;
-                    tableSpan.onclick = () => fetchColumns(database, table, tableItem); // 修复：传递当前表的 DOM 元素
-                    tableItem.appendChild(tableSpan);
-                    tableItem.appendChild(document.createElement('ul')); // 创建字段列表
-                    tableList.appendChild(tableItem);
+            // 获取所有数据库
+            fetch('/doris-lineage/list')
+                .then(response => response.json())
+                .then(databases => {
+                    databases.forEach(db => {
+                        const li = document.createElement('li');
+                        li.textContent = db;
+                        li.onclick = function() {
+                            showTables(db);
+                        };
+                        databaseListUl.appendChild(li);
+                    });
+                })
+                .catch(error => {
+                    console.error('获取数据库列表失败:', error);
                 });
-            }
-            tableList.style.display = tableList.style.display === 'none' ? 'block' : 'none'; // 切换显示状态
-        }
 
-        async function fetchColumns(database, table, tableItem) {
-            const columnList = tableItem.querySelector('ul');
-            if (!columnList.children.length) { // 如果还没有加载字段数据
-                const response = await fetch(`/api/db/databases/${database}/tables/${table}/columns`);
-                const columns = await response.json();
-                columns.forEach(column => {
-                    const columnItem = document.createElement('li');
-                    columnItem.textContent = column;
-                    columnList.appendChild(columnItem);
-                });
-            }
-            columnList.style.display = columnList.style.display === 'none' ? 'block' : 'none'; // 切换显示状态
-        }
+            // 展示表
+            function showTables(dbName) {
+                fetch(`/doris-lineage/list/${encodeURIComponent(dbName)}`)
+                    .then(response => response.json())
+                    .then(tables => {
+                        const tableListHtml = tables.map(table => `
+                            <li onclick="showFields('${dbName}', '${encodeURIComponent(table)}')">${table}</li>
+                        `).join('');
 
-        fetchDatabases();
+                        const tableListDiv = document.createElement('div');
+                        tableListDiv.className = 'table-list';
+                        tableListDiv.innerHTML = `
+                            <h2>表列表 (${dbName})</h2>
+                            <ul>${tableListHtml}</ul>
+                        `;
+
+                        // 替换数据库列表为表列表
+                        databaseListUl.parentNode.replaceChild(tableListDiv, databaseListUl);
+                    })
+                    .catch(error => {
+                        console.error('获取表列表失败:', error);
+                    });
+            }
+
+            // 展示字段
+            function showFields(dbName, tableName) {
+                fetch(`/doris-lineage/list/${encodeURIComponent(dbName)}/${encodeURIComponent(tableName)}`)
+                    .then(response => response.json())
+                    .then(fields => {
+                        const fieldListHtml = fields.map(field => `
+                            <li onclick="showFieldLineage('${dbName}', '${encodeURIComponent(tableName)}', '${encodeURIComponent(field)}')">${field}</li>
+                        `).join('');
+
+                        const fieldListDiv = document.createElement('div');
+                        fieldListDiv.className = 'field-list';
+                        fieldListDiv.innerHTML = `
+                            <h2>字段列表 (${tableName})</h2>
+                            <ul>${fieldListHtml}</ul>
+                        `;
+
+                        // 替换表列表为字段列表
+                        document.querySelector('.table-list').parentNode.replaceChild(fieldListDiv, document.querySelector('.table-list'));
+                    })
+                    .catch(error => {
+                        console.error('获取字段列表失败:', error);
+                    });
+            }
+
+            // 展示字段血缘
+            function showFieldLineage(dbName, tableName, fieldName) {
+                fetch(`/doris-lineage/full-field-lineage/${encodeURIComponent(dbName)}/${encodeURIComponent(tableName)}/${encodeURIComponent(fieldName)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.length > 0) {
+                            const result = data[0];
+                            const field = result.Field;
+                            const allNodes = result.allNodes;
+                            const allRelationships = result.allRelationships;
+
+                            // 构建节点和边
+                            const nodes = [];
+                            const edges = [];
+
+                            // 添加字段节点
+                            nodes.push({
+                                id: field.id,
+                                label: `字段: ${field.fieldName}`,
+                                title: `字段: ${field.fieldName}\n表: ${field.tableName}\n数据库: ${field.dbName}`,
+                                group: 'field'
+                            });
+
+                            // 添加其他节点和关系
+                            allNodes.forEach(node => {
+                                if (node.nodeType === 'Relation') {
+                                    nodes.push({
+                                        id: node.id,
+                                        label: `关系: ${node.relationType}`,
+                                        title: `关系类型: ${node.relationType}\nSQL: ${node.extra.sql}`,
+                                        group: 'relation'
+                                    });
+                                } else if (node.nodeType === 'Field' && node.id !== field.id) {
+                                    nodes.push({
+                                        id: node.id,
+                                        label: `字段: ${node.fieldName}`,
+                                        title: `字段: ${node.fieldName}\n表: ${node.tableName}\n数据库: ${node.dbName}`,
+                                        group: 'field'
+                                    });
+                                }
+                            });
+
+                            allRelationships.forEach(rel => {
+                                edges.push({
+                                    from: rel.startNode,
+                                    to: rel.endNode,
+                                    label: rel.type
+                                });
+                            });
+
+                            // 创建网络图
+                            const container = bloodlineContainer;
+                            const dataset = {
+                                nodes: nodes,
+                                edges: edges
+                            };
+
+                            const options = {
+                                nodes: {
+                                    shape: 'box',
+                                    margin: 10,
+                                    font: {
+                                        size: 14
+                                    }
+                                },
+                                edges: {
+                                    font: {
+                                        align: 'top'
+                                    },
+                                    arrows: {
+                                        to: { enabled: true, scaleFactor: 1 }
+                                    }
+                                },
+                                physics: {
+                                    enabled: true,
+                                    stabilization: {
+                                        iterations: 1000,
+                                        updateInterval: 100
+                                    }
+                                }
+                            };
+
+                            const network = new vis.Network(container, dataset, options);
+
+                            // 添加节点点击事件
+                            network.on('click', function(properties) {
+                                if (properties.nodes.length > 0) {
+                                    const nodeId = properties.nodes[0];
+                                    const node = nodes.find(n => n.id === nodeId);
+                                    if (node) {
+                                        alert(node.title);
+                                    }
+                                }
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('获取字段血缘失败:', error);
+                    });
+            }
+        });
     </script>
 </body>
 </html>

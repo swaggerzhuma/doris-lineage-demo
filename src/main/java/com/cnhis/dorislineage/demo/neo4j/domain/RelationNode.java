@@ -2,12 +2,13 @@ package com.cnhis.dorislineage.demo.neo4j.domain;
 
 import com.cnhis.dorislineage.demo.constants.NeoConstant;
 import com.cnhis.dorislineage.demo.utils.LineageUtil;
-import lombok.*;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.neo4j.ogm.annotation.NodeEntity;
 import org.neo4j.ogm.annotation.Transient;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -21,7 +22,6 @@ import java.util.Optional;
 //@EqualsAndHashCode(callSuper = true)
 @Builder
 @NoArgsConstructor
-@AllArgsConstructor
 @Data
 @NodeEntity(NeoConstant.Type.NODE_RELATION)
 public class RelationNode extends BaseNodeEntity {
@@ -51,11 +51,13 @@ public class RelationNode extends BaseNodeEntity {
     @Transient
     private String targetNodePk;
 
-    public RelationNode(String relationType, List<String> sourceNodePkList, String targetNodePk) {
+    public RelationNode(String relationType, String type, List<String> sourceNodePkList, String targetNodePk) {
         Optional.ofNullable(relationType).ifPresent(this::setRelationType);
+        Optional.ofNullable(type).ifPresent(this::setType);
         this.setSourceNodePkList(sourceNodePkList);
         this.setTargetNodePk(targetNodePk);
         this.setPk(LineageUtil.genRelationNodePk(this));
+        this.setNodeType(NeoConstant.Type.NODE_RELATION);
     }
 
     public String getRelationType() {

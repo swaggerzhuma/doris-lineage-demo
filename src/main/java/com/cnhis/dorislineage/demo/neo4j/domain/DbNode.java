@@ -27,8 +27,9 @@ public class DbNode extends BaseNodeEntity {
         this.setDbName(dbName);
         String pk = NodeQualifiedName.ofDb(this.getDataSourceName(), this.getDbName()).toString();
         this.setPk(pk);
+        this.setNodeType(NeoConstant.Type.NODE_DB);
         // displayName
-        this.setName(this.getDbName());
+        Optional.ofNullable(this.getDbName()).ifPresent(this::setName);
     }
 
 
