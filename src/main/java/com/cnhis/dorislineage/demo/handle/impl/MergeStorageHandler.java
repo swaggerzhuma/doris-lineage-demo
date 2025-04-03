@@ -1,11 +1,15 @@
 package com.cnhis.dorislineage.demo.handle.impl;
 
+import cn.hutool.core.util.IdUtil;
+import com.alibaba.fastjson.JSON;
 import com.cnhis.dorislineage.demo.dto.LineageContext;
 import com.cnhis.dorislineage.demo.handle.BaseStorageHandler;
 import com.cnhis.dorislineage.demo.neo4j.dao.*;
 import com.cnhis.dorislineage.demo.neo4j.domain.RelationNode;
 import com.cnhis.dorislineage.demo.neo4j.service.RelationshipService;
+import com.cnhis.dorislineage.demo.utils.StringUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
@@ -36,8 +40,14 @@ public class MergeStorageHandler implements BaseStorageHandler {
     @Autowired
     private RelationshipService relationshipService;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     @Override
     public void handle(LineageContext lineageMapping) {
+        //存储血缘json到doris
+        String sql = "insert into test.lineage_json(id,stmt,lineage_json)values('" + IdUtil.simpleUUID() + "','" + StringUtil.escapeSingleQuotes(JSON.toJSONString(lineageMapping.getSqlMessage().getSql())) + "','" + lineageMapping.getLineageJson() + "')";
+        jdbcTemplate.execute(sql);
         // 创建或更新节点信息
         createOrUpdateNode(lineageMapping);
         // 创建或更新节点关系

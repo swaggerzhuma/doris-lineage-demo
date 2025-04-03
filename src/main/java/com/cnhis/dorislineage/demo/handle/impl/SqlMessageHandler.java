@@ -25,14 +25,14 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * SQL 解析
+ * doris sql解析,生成数据血缘
+ *
+ * @author liuqiang
+ * @date 2025/4/2 16:57
  */
 @SourceHandler(NeoConstant.SourceType.SQL)
 @Slf4j
 public class SqlMessageHandler implements BaseMessageHandler {
-
-    private static final String[] IGNORE_PROP = new String[]{"ext"};
-
 
     @Override
     public LineageContext handle(DorisSqlAudit audit) {
@@ -46,7 +46,7 @@ public class SqlMessageHandler implements BaseMessageHandler {
         SqlParserService parserService = SqlParserFactory.getParser(SqlEngineEnum.DORIS_LISTENER);
         List<FieldLineageModel> fieldLineageModels = parserService.parseSqlFieldLineage(audit.getStmt());
         log.info("字段血缘:\n{}", JSON.toJSONString(fieldLineageModels, SerializerFeature.PrettyFormat));
-
+        context.setLineageJson(JSON.toJSONString(fieldLineageModels, SerializerFeature.WriteMapNullValue));
         String dataSourceName = sqlMessage.getDataSourceName();
         Set<DbNode> dbNodes = new HashSet<>();
         Set<TableNode> tableNodes = new HashSet<>();

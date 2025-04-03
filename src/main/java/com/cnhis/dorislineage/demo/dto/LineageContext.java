@@ -24,6 +24,6 @@ public class LineageContext {
     private  List<TableNode> tableNodeList = new ArrayList<>();
     private  List<FieldNode> fieldNodeList = new ArrayList<>();
     private  List<RelationNode> relationNodeList = new ArrayList<>();
-
     private SqlMessage sqlMessage;
+    private String lineageJson;
 }
